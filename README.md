@@ -1,2 +1,2 @@
 # DiscordGifOrganizer
-Gif organizer plugin for better discord
+Gif organizer plugin for BetterDiscord
