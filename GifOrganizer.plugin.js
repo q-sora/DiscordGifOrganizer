@@ -6,7 +6,7 @@
  */
 
 module.exports = class GifOrganizer {
-    getName() { return "GifOrganizer"; }
+    getName() { return "GifOrganizer"; }    
     getAuthor() { return "q_sora"; }
     getVersion() { return "1.3.0"; }
     getDescription() { return "Organize your favorite GIFs into custom categories with tags for quick filtering and search."; }
@@ -20,6 +20,7 @@ module.exports = class GifOrganizer {
         this._currentTab = "gifs";
         this._searchQuery = "";
         this._selectedCat = null;
+        this._hideNsfw = false;
     }
 
     // ───────────────────── SVG Icons ─────────────────────
@@ -72,6 +73,7 @@ module.exports = class GifOrganizer {
             { id: this._id(), name: "Cute", color: "#FEE75C", gifIds: [] }
         ]);
         this.gifs = this.loadData("gifs", []);
+        this._hideNsfw = this.loadData("hideNsfw", true);
         this._injectCSS();
         this._addGifPickerButton();
         this._startObserver();
@@ -93,6 +95,9 @@ module.exports = class GifOrganizer {
     // ───────────────────── CSS ─────────────────────
     _injectCSS() {
         BdApi.DOM.addStyle("GifOrganizer", `
+            .gif-org-nsfw-row{display:flex;align-items:center;gap:8px;margin-top:10px;cursor:pointer;user-select:none}
+            .gif-org-nsfw-row input{width:16px;height:16px;accent-color:#ED4245;cursor:pointer}
+            .gif-org-nsfw-row span{color:var(--text-normal,#dbdee1);font-size:13px}
             .gif-org-save-btn{position:absolute;top:6px;right:6px;background:rgba(0,0,0,.65);border:none;color:#fff;width:32px;height:32px;border-radius:8px;cursor:pointer;display:none;align-items:center;justify-content:center;z-index:100;transition:background .15s,transform .1s;padding:0}
             .gif-org-save-btn:hover{background:rgba(0,0,0,.85);transform:scale(1.1)}
             .gif-org-save-btn svg{pointer-events:none}
@@ -171,6 +176,14 @@ module.exports = class GifOrganizer {
             .gif-org-ctx-item:hover{background:var(--background-modifier-hover,#36373d)}
             .gif-org-ctx-item svg{flex-shrink:0}
             .gif-org-no-preview{width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:var(--text-muted,#6d6f78);font-size:11px;text-align:center;padding:8px}
+            .gif-org-nsfw-row{display:flex;align-items:center;gap:8px;margin-top:6px;cursor:pointer;user-select:none}
+            .gif-org-nsfw-row input[type="checkbox"]{appearance:none;-webkit-appearance:none;width:18px;height:18px;border:2px solid var(--interactive-normal,#b5bac1);border-radius:4px;cursor:pointer;position:relative;transition:background .15s,border-color .15s;flex-shrink:0}
+            .gif-org-nsfw-row input[type="checkbox"]:checked{background:var(--brand-500,#5865F2);border-color:var(--brand-500,#5865F2)}
+            .gif-org-nsfw-row input[type="checkbox"]:checked::after{content:'✓';position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:#fff;font-size:12px;font-weight:700}
+            .gif-org-nsfw-row input[type="checkbox"]:hover{border-color:var(--interactive-hover,#dbdee1)}
+            .gif-org-nsfw-row span{color:var(--text-normal,#dbdee1);font-size:13px;font-weight:600}
+            .gif-org-grid-item.nsfw-blur img,.gif-org-grid-item.nsfw-blur video{filter:blur(12px);transition:filter .2s,transform .2s}
+            .gif-org-grid-item.nsfw-blur:hover img,.gif-org-grid-item.nsfw-blur:hover video{filter:blur(6px);transform:scale(1.08)}
         `);
     }
 
@@ -336,6 +349,23 @@ module.exports = class GifOrganizer {
     }
 
     _renderGifsTab() {
+        // Hide NSFW toggle
+        const nsfwToggleRow = this._el("div", "gif-org-nsfw-row");
+        nsfwToggleRow.style.padding = "0 14px";
+        nsfwToggleRow.style.marginBottom = "4px";
+        const nsfwToggle = document.createElement("input");
+        nsfwToggle.type = "checkbox";
+        nsfwToggle.checked = this._hideNsfw;
+        const nsfwToggleLabel = this._el("span", "", "Скрывать NSFW");
+        nsfwToggleRow.onclick = (e) => {
+            if (e.target !== nsfwToggle) nsfwToggle.checked = !nsfwToggle.checked;
+            this._hideNsfw = nsfwToggle.checked;
+            this.saveData("hideNsfw", this._hideNsfw);
+            this._renderGifGrid();
+        };
+        nsfwToggleRow.append(nsfwToggle, nsfwToggleLabel);
+        this.panel.append(nsfwToggleRow);
+
         const search = this._el("div", "gif-org-search");
         const searchWrap = this._el("div", "gif-org-search-wrap");
         searchWrap.innerHTML = this._icon("search");
@@ -395,6 +425,7 @@ module.exports = class GifOrganizer {
         const addBtn = this._el("button");
         addBtn.innerHTML = this._icon("plus") + " Добавить";
         addBtn.onclick = () => this._addGif();
+
         row2.append(tagInput, catSelect, addBtn);
         form.append(row2);
         this.panel.append(form);
@@ -436,6 +467,9 @@ module.exports = class GifOrganizer {
                     video.playsInline = true;
                     video.onerror = () => { video.style.display = "none"; };
                     item.append(video);
+                    if (this._hideNsfw && gif.tags.some(t => t.toLowerCase() === "nsfw")) {
+                        item.classList.add("nsfw-blur");
+                    }
                 } else {
                     const img = document.createElement("img");
                     img.src = displayUrl;
@@ -443,6 +477,9 @@ module.exports = class GifOrganizer {
                     img.loading = "lazy";
                     img.onerror = () => { img.style.display = "none"; };
                     item.append(img);
+                    if (this._hideNsfw && gif.tags.some(t => t.toLowerCase() === "nsfw")) {
+                        item.classList.add("nsfw-blur");
+                    }
                 }
             } else {
                 const noPreview = this._el("div", "gif-org-no-preview");
@@ -525,6 +562,8 @@ module.exports = class GifOrganizer {
         const catId = document.getElementById("gif-org-cat-select")?.value;
         if (!url) return BdApi.UI.showToast("Введите URL гифки!", { type: "error" });
         const tags = tagsRaw ? tagsRaw.split(",").map(t => t.trim()).filter(Boolean) : [];
+        const nsfwChecked = document.getElementById("gif-org-nsfw-form-check")?.checked;
+        if (nsfwChecked && !tags.includes("nsfw")) tags.push("nsfw");
         const gif = { id: this._id(), url: this._normalizeGifUrl(url), previewUrl: null, tags, categoryId: catId || null, addedAt: Date.now() };
         this.gifs.push(gif);
         if (catId) {
@@ -622,12 +661,23 @@ module.exports = class GifOrganizer {
         tagInput.placeholder = "Теги через запятую";
         modal.append(tagInput);
 
+        // NSFW checkbox
+        const nsfwRow = this._el("div", "gif-org-nsfw-row");
+        const nsfwCheck = document.createElement("input");
+        nsfwCheck.type = "checkbox";
+        nsfwCheck.id = "gif-org-nsfw-check";
+        const nsfwLabel = this._el("span", "", "NSFW");
+        nsfwRow.onclick = (e) => { if (e.target !== nsfwCheck) nsfwCheck.checked = !nsfwCheck.checked; };
+        nsfwRow.append(nsfwCheck, nsfwLabel);
+        modal.append(nsfwRow);
+
         const btns = this._el("div", "gif-org-modal-btns");
         const cancelBtn = this._el("button", "gif-org-btn-cancel", "Отмена");
         cancelBtn.onclick = () => backdrop.remove();
         const saveBtn = this._el("button", "gif-org-btn-confirm", "Сохранить");
         saveBtn.onclick = () => {
             const tags = tagInput.value.split(",").map(t => t.trim()).filter(Boolean);
+            if (nsfwCheck.checked && !tags.includes("nsfw")) tags.push("nsfw");
             const catId = catSelect.value || null;
             const gif = {
                 id: this._id(),
