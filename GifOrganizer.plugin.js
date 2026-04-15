@@ -2,13 +2,13 @@
  * @name GifOrganizer
  * @author q_sora
  * @description Organize your favorite GIFs into custom categories and tag them for quick search.
- * @version 1.3.0
+ * @version 1.4.0
  */
 
 module.exports = class GifOrganizer {
     getName() { return "GifOrganizer"; }    
     getAuthor() { return "q_sora"; }
-    getVersion() { return "1.3.0"; }
+    getVersion() { return "1.4.0"; }
     getDescription() { return "Organize your favorite GIFs into custom categories with tags for quick filtering and search."; }
 
     constructor() {
@@ -21,6 +21,123 @@ module.exports = class GifOrganizer {
         this._searchQuery = "";
         this._selectedCat = null;
         this._hideNsfw = false;
+        this._lang = "en";
+    }
+
+    _translations = {
+        en: {
+            title: "GIF Organizer",
+            gifs: "GIFs",
+            categories: "Categories",
+            searchPlaceholder: "Search by tags or URL...",
+            all: "All",
+            noCategory: "No category",
+            urlPlaceholder: "GIF URL (tenor, giphy...)",
+            tagsPlaceholder: "Tags separated by commas",
+            add: "Add",
+            save: "Save",
+            cancel: "Cancel",
+            create: "Create",
+            edit: "Edit",
+            editGif: "Edit GIF",
+            saveGif: "Save GIF",
+            newCategory: "New category",
+            editCategory: "Edit category",
+            categoryName: "Category name",
+            category: "Category",
+            tags: "Tags",
+            color: "Color",
+            name: "Name",
+            nsfw: "NSFW",
+            hideNsfw: "Hide NSFW",
+            enterUrl: "Enter GIF URL!",
+            enterName: "Enter name!",
+            gifAdded: "GIF added!",
+            gifSaved: "GIF saved!",
+            gifUpdated: "GIF updated!",
+            categoryCreated: "Category created!",
+            categoryDeleted: "Category deleted",
+            updated: "Updated!",
+            urlCopied: "URL copied!",
+            exportReady: "Export ready!",
+            importReady: "Import ready!",
+            fileError: "File error!",
+            dataReset: "Data reset.",
+            resetAll: "Reset all",
+            deleteConfirm: "All data will be deleted!",
+            emptyGifs: "No GIFs. Add your first!",
+            insertToChat: "Insert to chat",
+            copyUrl: "Copy URL",
+            saveToOrg: "Save to GIF Organizer",
+            started: "GifOrganizer started!",
+            categoriesCount: "Categories",
+            gifsCount: "GIF",
+            tagsEditPlaceholder: "happy, reaction, lol",
+            categoryNamePlaceholder: "Category name",
+            editTooltip: "Edit",
+            deleteTooltip: "Delete",
+        },
+        ru: {
+            title: "GIF Organizer",
+            gifs: "GIF-ки",
+            categories: "Категории",
+            searchPlaceholder: "Поиск по тегам или URL...",
+            all: "Все",
+            noCategory: "Без категории",
+            urlPlaceholder: "URL гифки (tenor, giphy...)",
+            tagsPlaceholder: "Теги через запятую",
+            add: "Добавить",
+            save: "Сохранить",
+            cancel: "Отмена",
+            create: "Создать",
+            edit: "Редактировать",
+            editGif: "Редактировать GIF",
+            saveGif: "Сохранить GIF",
+            newCategory: "Новая категория",
+            editCategory: "Редактировать",
+            categoryName: "Название категории",
+            category: "Категория",
+            tags: "Теги",
+            color: "Цвет",
+            name: "Название",
+            nsfw: "NSFW",
+            hideNsfw: "Скрывать NSFW",
+            enterUrl: "Введите URL гифки!",
+            enterName: "Введите название!",
+            gifAdded: "GIF добавлена!",
+            gifSaved: "GIF сохранена!",
+            gifUpdated: "GIF обновлена!",
+            categoryCreated: "Категория создана!",
+            categoryDeleted: "Категория удалена",
+            updated: "Обновлено!",
+            urlCopied: "URL скопирован!",
+            exportReady: "Экспорт готов!",
+            importReady: "Импорт готов!",
+            fileError: "Ошибка файла!",
+            dataReset: "Данные сброшены.",
+            resetAll: "Сбросить все",
+            deleteConfirm: "Все данные будут удалены!",
+            emptyGifs: "Нет гифок. Добавьте свою первую!",
+            insertToChat: "Вставить в чат",
+            copyUrl: "Скопировать URL",
+            saveToOrg: "Сохранить в GIF Organizer",
+            started: "GifOrganizer запущен!",
+            categoriesCount: "Категорий",
+            gifsCount: "GIF",
+            tagsEditPlaceholder: "happy, reaction, лол",
+            categoryNamePlaceholder: "Название категории",
+            editTooltip: "Редактировать",
+            deleteTooltip: "Удалить",
+        }
+    };
+
+    _t(key) {
+        return this._translations[this._lang]?.[key] || this._translations["en"][key] || key;
+    }
+
+    _detectLang() {
+        const lang = document.documentElement.lang || navigator.language || "en";
+        this._lang = lang.startsWith("ru") ? "ru" : "en";
     }
 
     // ───────────────────── SVG Icons ─────────────────────
@@ -77,8 +194,8 @@ module.exports = class GifOrganizer {
         this._injectCSS();
         this._addGifPickerButton();
         this._startObserver();
-        document.addEventListener("contextmenu", this._onContextMenu);
-        BdApi.UI.showToast("GifOrganizer started!", { type: "success" });
+        this._detectLang();
+        BdApi.UI.showToast(this._t("started"), { type: "success" });
     }
 
     stop() {
@@ -87,8 +204,6 @@ module.exports = class GifOrganizer {
         if (this.observer) { this.observer.disconnect(); this.observer = null; }
         document.querySelectorAll(".gif-org-launch-btn").forEach(el => el.remove());
         document.querySelectorAll(".gif-org-save-btn").forEach(el => el.remove());
-        document.removeEventListener("contextmenu", this._onContextMenu);
-        document.querySelectorAll(".gif-org-ctx").forEach(el => el.remove());
         this.buttonInjected = false;
     }
 
@@ -171,10 +286,6 @@ module.exports = class GifOrganizer {
             .gif-org-empty svg{margin-bottom:8px;opacity:.5}
             .gif-org-launch-btn{background:none;border:none;color:var(--interactive-normal,#b5bac1);cursor:pointer;padding:4px 8px;border-radius:4px;transition:color .15s;display:flex;align-items:center}
             .gif-org-launch-btn:hover{color:var(--interactive-hover,#dbdee1)}
-            .gif-org-ctx{position:fixed;background:var(--background-floating,#18191c);border:1px solid var(--background-modifier-accent,#2e3035);border-radius:8px;padding:6px;z-index:10002;min-width:220px;box-shadow:0 8px 24px rgba(0,0,0,.4)}
-            .gif-org-ctx-item{padding:8px 10px;border-radius:4px;font-size:13px;color:var(--text-normal,#dbdee1);cursor:pointer;display:flex;align-items:center;gap:8px}
-            .gif-org-ctx-item:hover{background:var(--background-modifier-hover,#36373d)}
-            .gif-org-ctx-item svg{flex-shrink:0}
             .gif-org-no-preview{width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:var(--text-muted,#6d6f78);font-size:11px;text-align:center;padding:8px}
             .gif-org-nsfw-row{display:flex;align-items:center;gap:8px;margin-top:6px;cursor:pointer;user-select:none}
             .gif-org-nsfw-row input[type="checkbox"]{appearance:none;-webkit-appearance:none;width:18px;height:18px;border:2px solid var(--interactive-normal,#b5bac1);border-radius:4px;cursor:pointer;position:relative;transition:background .15s,border-color .15s;flex-shrink:0}
@@ -225,15 +336,17 @@ module.exports = class GifOrganizer {
             wrapper.style.position = "relative";
             const btn = document.createElement("button");
             btn.className = "gif-org-save-btn";
-            btn.title = "Сохранить в GIF Organizer";
+            btn.title = this._t("saveToOrg");
             btn.innerHTML = this._icon("save");
             btn.addEventListener("click", (e) => {
                 e.preventDefault();
                 e.stopPropagation();
                 const viewUrl = link.getAttribute("href");
-                const mediaUrl = wrapper.querySelector("img")?.getAttribute("data-safe-src")
-                    || wrapper.querySelector("img")?.src
-                    || wrapper.querySelector("video")?.src;
+                const img = wrapper.querySelector("img");
+                const video = wrapper.querySelector("video");
+                const mediaUrl = img?.getAttribute("data-safe-src")
+                    || (img?.src?.startsWith("data:") ? null : img?.src)
+                    || video?.src;
                 this._quickAddModal(viewUrl || mediaUrl, mediaUrl);
             });
             wrapper.appendChild(btn);
@@ -252,14 +365,16 @@ module.exports = class GifOrganizer {
             wrapper.style.position = "relative";
             const btn = document.createElement("button");
             btn.className = "gif-org-save-btn";
-            btn.title = "Сохранить в GIF Organizer";
+            btn.title = this._t("saveToOrg");
             btn.innerHTML = this._icon("save");
             btn.addEventListener("click", (e) => {
                 e.preventDefault();
                 e.stopPropagation();
                 const parentLink = wrapper.querySelector('a[class*="originalLink"]');
                 const viewUrl = parentLink?.getAttribute("href");
-                const mediaUrl = media.src;
+                const mediaUrl = media.getAttribute("data-safe-src")
+                    || (media.src?.startsWith("data:") ? null : media.src)
+                    || media.src;
                 this._quickAddModal(viewUrl || mediaUrl, mediaUrl);
             });
             wrapper.appendChild(btn);
@@ -337,7 +452,7 @@ module.exports = class GifOrganizer {
         this.panel.append(header);
 
         const tabs = this._el("div", "gif-org-tabs");
-        [["gifs", "GIF-ки"], ["categories", "Категории"]].forEach(([key, label]) => {
+        [["gifs", this._t("gifs")], ["categories", this._t("categories")]].forEach(([key, label]) => {
             const t = this._el("div", `gif-org-tab${tab === key ? " active" : ""}`, label);
             t.onclick = () => { this._currentTab = key; this._renderPanel(); };
             tabs.append(t);
@@ -356,7 +471,7 @@ module.exports = class GifOrganizer {
         const nsfwToggle = document.createElement("input");
         nsfwToggle.type = "checkbox";
         nsfwToggle.checked = this._hideNsfw;
-        const nsfwToggleLabel = this._el("span", "", "Скрывать NSFW");
+        const nsfwToggleLabel = this._el("span", "", this._t("hideNsfw"));
         nsfwToggleRow.onclick = (e) => {
             if (e.target !== nsfwToggle) nsfwToggle.checked = !nsfwToggle.checked;
             this._hideNsfw = nsfwToggle.checked;
@@ -370,7 +485,7 @@ module.exports = class GifOrganizer {
         const searchWrap = this._el("div", "gif-org-search-wrap");
         searchWrap.innerHTML = this._icon("search");
         const input = document.createElement("input");
-        input.placeholder = "Поиск по тегам или URL...";
+        input.placeholder = this._t("searchPlaceholder");
         input.value = this._searchQuery;
         input.oninput = (e) => { this._searchQuery = e.target.value; this._renderGifGrid(); };
         searchWrap.append(input);
@@ -382,7 +497,7 @@ module.exports = class GifOrganizer {
         const allChip = this._el("div", `gif-org-cat-chip${this._selectedCat === null ? " selected" : ""}`);
         allChip.style.background = "var(--background-secondary, #2b2d31)";
         allChip.style.color = "var(--text-normal, #dbdee1)";
-        allChip.innerHTML = `Все <span class="gif-org-cat-count">${this.gifs.length}</span>`;
+        allChip.innerHTML = `${this._t("all")} <span class="gif-org-cat-count">${this.gifs.length}</span>`;
         allChip.onclick = () => { this._selectedCat = null; this._renderPanel(); };
         catsRow.append(allChip);
         this.categories.forEach(cat => {
@@ -404,18 +519,18 @@ module.exports = class GifOrganizer {
         const form = this._el("div", "gif-org-add-form");
         const row1 = this._el("div", "gif-org-form-row");
         const urlInput = document.createElement("input");
-        urlInput.placeholder = "URL гифки (tenor, giphy...)";
+        urlInput.placeholder = this._t("urlPlaceholder");
         urlInput.id = "gif-org-url-input";
         row1.append(urlInput);
         form.append(row1);
         const row2 = this._el("div", "gif-org-form-row");
         const tagInput = document.createElement("input");
-        tagInput.placeholder = "Теги через запятую";
+        tagInput.placeholder = this._t("tagsPlaceholder");
         tagInput.id = "gif-org-tag-input";
         const catSelect = document.createElement("select");
         catSelect.id = "gif-org-cat-select";
         const defOpt = document.createElement("option");
-        defOpt.value = ""; defOpt.textContent = "Без категории";
+        defOpt.value = ""; defOpt.textContent = this._t("noCategory");
         catSelect.append(defOpt);
         this.categories.forEach(cat => {
             const opt = document.createElement("option");
@@ -423,7 +538,7 @@ module.exports = class GifOrganizer {
             catSelect.append(opt);
         });
         const addBtn = this._el("button");
-        addBtn.innerHTML = this._icon("plus") + " Добавить";
+        addBtn.innerHTML = this._icon("plus") + " " + this._t("add");
         addBtn.onclick = () => this._addGif();
 
         row2.append(tagInput, catSelect, addBtn);
@@ -447,7 +562,7 @@ module.exports = class GifOrganizer {
 
         if (!filtered.length) {
             const empty = this._el("div", "gif-org-empty");
-            empty.innerHTML = this._icon("inbox") + '<div style="margin-top:4px">Нет гифок. Добавьте свою первую!</div>';
+            empty.innerHTML = this._icon("inbox") + `<div style="margin-top:4px">${this._t("emptyGifs")}</div>`;
             container.append(empty);
             return;
         }
@@ -497,15 +612,15 @@ module.exports = class GifOrganizer {
 
             const oActions = this._el("div", "gif-org-overlay-actions");
             const sendBtn = this._el("button");
-            sendBtn.title = "Вставить в чат";
+            sendBtn.title = this._t("insertToChat");
             sendBtn.innerHTML = this._icon("send");
             sendBtn.onclick = (e) => { e.stopPropagation(); this._sendGif(gif); };
             const editBtn = this._el("button");
-            editBtn.title = "Редактировать";
+            editBtn.title = this._t("editTooltip");
             editBtn.innerHTML = this._icon("edit");
             editBtn.onclick = (e) => { e.stopPropagation(); this._editGifModal(gif); };
             const delBtn = this._el("button");
-            delBtn.title = "Удалить";
+            delBtn.title = this._t("deleteTooltip");
             delBtn.innerHTML = this._icon("trash");
             delBtn.onclick = (e) => { e.stopPropagation(); this._deleteGif(gif.id); };
             oActions.append(sendBtn, editBtn, delBtn);
@@ -547,7 +662,7 @@ module.exports = class GifOrganizer {
 
         const addRow = this._el("div", "");
         addRow.style.cssText = "display:flex;align-items:center;justify-content:center;gap:6px;padding:10px;border-radius:8px;margin-top:8px;border:2px dashed var(--background-modifier-accent,#3f4147);color:var(--text-muted);font-size:13px;cursor:pointer;transition:border-color .15s,color .15s;";
-        addRow.innerHTML = this._icon("plus") + " Новая категория";
+        addRow.innerHTML = this._icon("plus") + " " + this._t("newCategory");
         addRow.onmouseenter = () => { addRow.style.borderColor = "var(--brand-500)"; addRow.style.color = "var(--text-normal)"; };
         addRow.onmouseleave = () => { addRow.style.borderColor = "var(--background-modifier-accent)"; addRow.style.color = "var(--text-muted)"; };
         addRow.onclick = () => this._editCategoryModal(null);
@@ -560,7 +675,7 @@ module.exports = class GifOrganizer {
         const url = document.getElementById("gif-org-url-input")?.value?.trim();
         const tagsRaw = document.getElementById("gif-org-tag-input")?.value?.trim();
         const catId = document.getElementById("gif-org-cat-select")?.value;
-        if (!url) return BdApi.UI.showToast("Введите URL гифки!", { type: "error" });
+        if (!url) return BdApi.UI.showToast(this._t("enterUrl"), { type: "error" });
         const tags = tagsRaw ? tagsRaw.split(",").map(t => t.trim()).filter(Boolean) : [];
         const nsfwChecked = document.getElementById("gif-org-nsfw-form-check")?.checked;
         if (nsfwChecked && !tags.includes("nsfw")) tags.push("nsfw");
@@ -571,7 +686,7 @@ module.exports = class GifOrganizer {
             if (cat) cat.gifIds.push(gif.id);
         }
         this._persist();
-        BdApi.UI.showToast("GIF добавлена!", { type: "success" });
+        BdApi.UI.showToast(this._t("gifAdded"), { type: "success" });
         this._renderPanel();
     }
 
@@ -586,7 +701,7 @@ module.exports = class GifOrganizer {
         this.categories = this.categories.filter(c => c.id !== id);
         this.gifs.forEach(g => { if (g.categoryId === id) g.categoryId = null; });
         this._persist();
-        BdApi.UI.showToast("Категория удалена", { type: "info" });
+        BdApi.UI.showToast(this._t("categoryDeleted"), { type: "info" });
         this._renderPanel();
     }
 
@@ -617,7 +732,7 @@ module.exports = class GifOrganizer {
             this._removePanel();
         } else {
             navigator.clipboard.writeText(url);
-            BdApi.UI.showToast("URL скопирован!", { type: "success" });
+            BdApi.UI.showToast(this._t("urlCopied"), { type: "success" });
             this._removePanel();
         }
     }
@@ -627,7 +742,7 @@ module.exports = class GifOrganizer {
         const backdrop = this._el("div", "gif-org-modal-backdrop");
         const modal = this._el("div", "gif-org-modal");
         const heading = this._el("h4");
-        heading.innerHTML = this._icon("save") + " Сохранить GIF";
+        heading.innerHTML = this._icon("save") + " " + this._t("saveGif");
         modal.append(heading);
 
         const previewSrc = previewUrl || url;
@@ -644,10 +759,10 @@ module.exports = class GifOrganizer {
             modal.append(preview);
         }
 
-        modal.append(this._el("label", "", "Категория"));
+        modal.append(this._el("label", "", this._t("category")));
         const catSelect = document.createElement("select");
         const noneOpt = document.createElement("option");
-        noneOpt.value = ""; noneOpt.textContent = "Без категории";
+        noneOpt.value = ""; noneOpt.textContent = this._t("noCategory");
         catSelect.append(noneOpt);
         this.categories.forEach(cat => {
             const opt = document.createElement("option");
@@ -656,9 +771,9 @@ module.exports = class GifOrganizer {
         });
         modal.append(catSelect);
 
-        modal.append(this._el("label", "", "Теги"));
+        modal.append(this._el("label", "", this._t("tags")));
         const tagInput = document.createElement("input");
-        tagInput.placeholder = "Теги через запятую";
+        tagInput.placeholder = this._t("tagsPlaceholder");
         modal.append(tagInput);
 
         // NSFW checkbox
@@ -666,15 +781,15 @@ module.exports = class GifOrganizer {
         const nsfwCheck = document.createElement("input");
         nsfwCheck.type = "checkbox";
         nsfwCheck.id = "gif-org-nsfw-check";
-        const nsfwLabel = this._el("span", "", "NSFW");
+        const nsfwLabel = this._el("span", "", this._t("nsfw"));
         nsfwRow.onclick = (e) => { if (e.target !== nsfwCheck) nsfwCheck.checked = !nsfwCheck.checked; };
         nsfwRow.append(nsfwCheck, nsfwLabel);
         modal.append(nsfwRow);
 
         const btns = this._el("div", "gif-org-modal-btns");
-        const cancelBtn = this._el("button", "gif-org-btn-cancel", "Отмена");
+        const cancelBtn = this._el("button", "gif-org-btn-cancel", this._t("cancel"));
         cancelBtn.onclick = () => backdrop.remove();
-        const saveBtn = this._el("button", "gif-org-btn-confirm", "Сохранить");
+        const saveBtn = this._el("button", "gif-org-btn-confirm", this._t("save"));
         saveBtn.onclick = () => {
             const tags = tagInput.value.split(",").map(t => t.trim()).filter(Boolean);
             if (nsfwCheck.checked && !tags.includes("nsfw")) tags.push("nsfw");
@@ -692,7 +807,7 @@ module.exports = class GifOrganizer {
             }
             this._persist();
             backdrop.remove();
-            BdApi.UI.showToast("GIF сохранена!", { type: "success" });
+            BdApi.UI.showToast(this._t("gifSaved"), { type: "success" });
         };
         btns.append(cancelBtn, saveBtn);
         modal.append(btns);
@@ -710,13 +825,13 @@ module.exports = class GifOrganizer {
         const backdrop = this._el("div", "gif-org-modal-backdrop");
         const modal = this._el("div", "gif-org-modal");
         const heading = this._el("h4");
-        heading.innerHTML = this._icon("edit") + " Редактировать GIF";
+        heading.innerHTML = this._icon("edit") + " " + this._t("editGif");
         modal.append(heading);
 
-        modal.append(this._el("label", "", "Категория"));
+        modal.append(this._el("label", "", this._t("category")));
         const catSelect = document.createElement("select");
         const noneOpt = document.createElement("option");
-        noneOpt.value = ""; noneOpt.textContent = "Без категории";
+        noneOpt.value = ""; noneOpt.textContent = this._t("noCategory");
         catSelect.append(noneOpt);
         this.categories.forEach(cat => {
             const opt = document.createElement("option");
@@ -726,10 +841,10 @@ module.exports = class GifOrganizer {
         });
         modal.append(catSelect);
 
-        modal.append(this._el("label", "", "Теги"));
+        modal.append(this._el("label", "", this._t("tags")));
         const tagInput = document.createElement("input");
         tagInput.value = gif.tags.join(", ");
-        tagInput.placeholder = "happy, reaction, лол";
+        tagInput.placeholder = this._t("tagsEditPlaceholder");
         modal.append(tagInput);
 
         let currentTags = [...gif.tags];
@@ -755,9 +870,9 @@ module.exports = class GifOrganizer {
         modal.append(tagList);
 
         const btns = this._el("div", "gif-org-modal-btns");
-        const cancelBtn = this._el("button", "gif-org-btn-cancel", "Отмена");
+        const cancelBtn = this._el("button", "gif-org-btn-cancel", this._t("cancel"));
         cancelBtn.onclick = () => backdrop.remove();
-        const saveBtn = this._el("button", "gif-org-btn-confirm", "Сохранить");
+        const saveBtn = this._el("button", "gif-org-btn-confirm", this._t("save"));
         saveBtn.onclick = () => {
             gif.categoryId = catSelect.value || null;
             gif.tags = currentTags;
@@ -768,7 +883,7 @@ module.exports = class GifOrganizer {
             this._persist();
             backdrop.remove();
             this._renderPanel();
-            BdApi.UI.showToast("GIF обновлена!", { type: "success" });
+            BdApi.UI.showToast(this._t("gifUpdated"), { type: "success" });
         };
         btns.append(cancelBtn, saveBtn);
         modal.append(btns);
@@ -790,16 +905,16 @@ module.exports = class GifOrganizer {
         const backdrop = this._el("div", "gif-org-modal-backdrop");
         const modal = this._el("div", "gif-org-modal");
         const heading = this._el("h4");
-        heading.innerHTML = this._icon(isNew ? "plus" : "edit") + (isNew ? " Новая категория" : " Редактировать");
+        heading.innerHTML = this._icon(isNew ? "plus" : "edit") + (" " + this._t(isNew ? "newCategory" : "editCategory"));
         modal.append(heading);
 
-        modal.append(this._el("label", "", "Название"));
+        modal.append(this._el("label", "", this._t("name")));
         const nameInput = document.createElement("input");
         nameInput.value = cat ? cat.name : "";
-        nameInput.placeholder = "Название категории";
+        nameInput.placeholder = this._t("categoryNamePlaceholder");
         modal.append(nameInput);
 
-        modal.append(this._el("label", "", "Цвет"));
+        modal.append(this._el("label", "", this._t("color")));
         const colorRow = this._el("div", "gif-org-color-row");
         COLORS.forEach(c => {
             const swatch = this._el("div", "gif-org-color-swatch" + (c === color ? " selected" : ""));
@@ -814,18 +929,18 @@ module.exports = class GifOrganizer {
         modal.append(colorRow);
 
         const btns = this._el("div", "gif-org-modal-btns");
-        const cancelBtn = this._el("button", "gif-org-btn-cancel", "Отмена");
+        const cancelBtn = this._el("button", "gif-org-btn-cancel", this._t("cancel"));
         cancelBtn.onclick = () => backdrop.remove();
-        const saveBtn = this._el("button", "gif-org-btn-confirm", isNew ? "Создать" : "Сохранить");
+        const saveBtn = this._el("button", "gif-org-btn-confirm", this._t(isNew ? "create" : "save"));
         saveBtn.onclick = () => {
             const n = nameInput.value.trim();
-            if (!n) return BdApi.UI.showToast("Введите название!", { type: "error" });
+            if (!n) return BdApi.UI.showToast(this._t("enterName"), { type: "error" });
             if (isNew) this.categories.push({ id: this._id(), name: n, color, gifIds: [] });
             else { cat.name = n; cat.color = color; }
             this._persist();
             backdrop.remove();
             this._renderPanel();
-            BdApi.UI.showToast(isNew ? "Категория создана!" : "Обновлено!", { type: "success" });
+            BdApi.UI.showToast(this._t(isNew ? "categoryCreated" : "updated"), { type: "success" });
         };
         btns.append(cancelBtn, saveBtn);
         modal.append(btns);
@@ -847,7 +962,7 @@ module.exports = class GifOrganizer {
         const a = document.createElement("a");
         a.href = url; a.download = "gif-organizer-backup.json"; a.click();
         URL.revokeObjectURL(url);
-        BdApi.UI.showToast("Экспорт готов!", { type: "success" });
+        BdApi.UI.showToast(this._t("exportReady"), { type: "success" });
     }
 
     _importData() {
@@ -864,8 +979,8 @@ module.exports = class GifOrganizer {
                     if (data.gifs) this.gifs = data.gifs;
                     this._persist();
                     this._renderPanel();
-                    BdApi.UI.showToast("Импорт готов!", { type: "success" });
-                } catch { BdApi.UI.showToast("Ошибка файла!", { type: "error" }); }
+                    BdApi.UI.showToast(this._t("importReady"), { type: "success" });
+                } catch { BdApi.UI.showToast(this._t("fileError"), { type: "error" }); }
             };
             reader.readAsText(file);
         };
@@ -877,12 +992,12 @@ module.exports = class GifOrganizer {
         const p = document.createElement("div");
         p.style.padding = "16px";
         p.innerHTML = '<div style="color:var(--header-primary);font-size:16px;font-weight:700;margin-bottom:12px;">GIF Organizer</div>' +
-            '<div style="color:var(--text-muted);font-size:13px;margin-bottom:16px;">Категорий: <strong>' + this.categories.length + '</strong> | GIF: <strong>' + this.gifs.length + '</strong></div>' +
-            '<button id="gif-org-reset-btn" style="background:#ED4245;color:#fff;border:none;padding:8px 16px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:600;display:flex;align-items:center;gap:6px;">' + this._icon("warning") + ' Сбросить все</button>';
+            `<div style="color:var(--text-muted);font-size:13px;margin-bottom:16px;">${this._t("categoriesCount")}: <strong>${this.categories.length}</strong> | ${this._t("gifsCount")}: <strong>${this.gifs.length}</strong></div>` +
+            '<button id="gif-org-reset-btn" style="background:#ED4245;color:#fff;border:none;padding:8px 16px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:600;display:flex;align-items:center;gap:6px;">' + this._icon("warning") + " " + this._t("resetAll");
         p.querySelector("#gif-org-reset-btn").onclick = () => {
-            if (confirm("Все данные будут удалены!")) {
+            if (confirm(this._t("deleteConfirm"))) {
                 this.categories = []; this.gifs = []; this._persist();
-                BdApi.UI.showToast("Данные сброшены.", { type: "info" });
+                BdApi.UI.showToast(this._t("dataReset"), { type: "info" });
             }
         };
         return p;
