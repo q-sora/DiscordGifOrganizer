@@ -2,13 +2,13 @@
  * @name GifOrganizer
  * @author q_sora
  * @description Organize your favorite GIFs into custom categories and tag them for quick search.
- * @version 1.4.0
+ * @version 1.5.0
  */
 
 module.exports = class GifOrganizer {
     getName() { return "GifOrganizer"; }    
     getAuthor() { return "q_sora"; }
-    getVersion() { return "1.4.0"; }
+    getVersion() { return "1.5.0"; }
     getDescription() { return "Organize your favorite GIFs into custom categories with tags for quick filtering and search."; }
 
     constructor() {
@@ -552,6 +552,7 @@ module.exports = class GifOrganizer {
         container.innerHTML = "";
 
         let filtered = [...this.gifs];
+        filtered.sort((a, b) => (b.addedAt || 0) - (a.addedAt || 0));
         if (this._selectedCat) filtered = filtered.filter(g => g.categoryId === this._selectedCat);
         if (this._searchQuery.trim()) {
             const q = this._searchQuery.toLowerCase();
@@ -790,14 +791,25 @@ module.exports = class GifOrganizer {
         const cancelBtn = this._el("button", "gif-org-btn-cancel", this._t("cancel"));
         cancelBtn.onclick = () => backdrop.remove();
         const saveBtn = this._el("button", "gif-org-btn-confirm", this._t("save"));
-        saveBtn.onclick = () => {
+        saveBtn.onclick = async () => {
             const tags = tagInput.value.split(",").map(t => t.trim()).filter(Boolean);
             if (nsfwCheck.checked && !tags.includes("nsfw")) tags.push("nsfw");
             const catId = catSelect.value || null;
+            
+            // Thumbnail generation
+            const mediaSrc = previewUrl || url;
+            let thumbnail = null;
+            const isDiscordCdn = mediaSrc.includes("discordapp.net")
+                || mediaSrc.includes("discordapp.com")
+                || mediaSrc.includes("discord.com/attachments");
+            if (isDiscordCdn) {
+                thumbnail = await this._generateThumbnail(mediaSrc);
+            }
+            
             const gif = {
                 id: this._id(),
                 url: this._normalizeGifUrl(url),
-                previewUrl: previewUrl ? this._normalizeGifUrl(previewUrl) : null,
+                previewUrl: thumbnail || (previewUrl ? this._normalizeGifUrl(previewUrl) : null),
                 tags, categoryId: catId, addedAt: Date.now()
             };
             this.gifs.push(gif);
@@ -952,6 +964,48 @@ module.exports = class GifOrganizer {
             if (ev.key === "Escape") { backdrop.remove(); document.removeEventListener("keydown", escClose, true); }
         };
         document.addEventListener("keydown", escClose, true);
+    }
+
+    // ───────────────────── Generate thumbnail ─────────────────────
+    async _generateThumbnail(url) {
+        try {
+            const res = await fetch(url);
+            const blob = await res.blob();
+            const bitmapUrl = URL.createObjectURL(blob);
+            
+            const isVideo = url.includes(".mp4") || url.includes(".webm");
+            
+            return await new Promise((resolve) => {
+                if (isVideo) {
+                    const video = document.createElement("video");
+                    video.muted = true;
+                    video.src = bitmapUrl;
+                    video.onloadeddata = () => { video.currentTime = 0.5; };
+                    video.onseeked = () => {
+                        const canvas = document.createElement("canvas");
+                        canvas.width = 150;
+                        canvas.height = Math.round(150 * (video.videoHeight / video.videoWidth)) || 150;
+                        canvas.getContext("2d").drawImage(video, 0, 0, canvas.width, canvas.height);
+                        URL.revokeObjectURL(bitmapUrl);
+                        resolve(canvas.toDataURL("image/webp", 0.6));
+                    };
+                    video.onerror = () => { URL.revokeObjectURL(bitmapUrl); resolve(null); };
+                } else {
+                    const img = new Image();
+                    img.src = bitmapUrl;
+                    img.onload = () => {
+                        const canvas = document.createElement("canvas");
+                        canvas.width = 150;
+                        canvas.height = Math.round(150 * (img.height / img.width)) || 150;
+                        canvas.getContext("2d").drawImage(img, 0, 0, canvas.width, canvas.height);
+                        URL.revokeObjectURL(bitmapUrl);
+                        resolve(canvas.toDataURL("image/webp", 0.6));
+                    };
+                    img.onerror = () => { URL.revokeObjectURL(bitmapUrl); resolve(null); };
+                }
+                setTimeout(() => { URL.revokeObjectURL(bitmapUrl); resolve(null); }, 5000);
+            });
+        } catch { return null; }
     }
 
     // ───────────────────── Export / Import ─────────────────────
